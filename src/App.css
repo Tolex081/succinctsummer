@@ -1,0 +1,325 @@
+/* src/App.css */
+body {
+  background-image: url('./assets/background-image.png'); 
+  background-size: cover; 
+  background-position: center; 
+  background-repeat: no-repeat; 
+  background-attachment: fixed; 
+  margin: 0; 
+  padding: 0; 
+  min-height: 100vh; 
+  width: 100vw; 
+  overflow-x: hidden; 
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem; 
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.25rem; 
+}
+
+.logo {
+  width: 10rem; 
+  height: auto;
+  margin-right: 1.25rem; 
+}
+
+h1 {
+  font-size: 2.5rem; 
+  color: #000000;
+  margin-left: 3rem;
+  align-items: center;
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem; 
+  background-color: rgba(255, 255, 255, 0.8); 
+  padding: 1.25rem;
+  border-radius: 0.5rem; 
+}
+
+.template-selector h2,
+.user-input h2,
+.banner-preview h2 {
+  font-size: 1.25rem; 
+  margin-bottom: 0.625rem; 
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.375rem, 1fr)); /* Converted 150px to rem */
+  gap: 1.25rem; /* Converted 20px to rem */
+}
+
+.template-card {
+  cursor: pointer;
+  text-align: center;
+  border: 0.125rem solid #ddd; /* Converted 2px to rem */
+  border-radius: 0.5rem; /* Converted 8px to rem */
+  padding: 0.625rem; /* Converted 10px to rem */
+  transition: border-color 0.3s;
+}
+
+.template-card:hover {
+  border-color: #007bff;
+}
+
+.template-card img {
+  width: 100%;
+  height: auto;
+  border-radius: 0.25rem; /* Converted 4px to rem */
+}
+
+/* src/App.css (only the .user-input section) */
+.user-input .input-group {
+  margin-bottom: 1.25rem; /* Increased spacing for a more open layout */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* Adds spacing between label and input */
+}
+
+.user-input label {
+  display: block;
+  margin-bottom: 0.5rem; /* Slightly increased for better separation */
+  font-weight: 600; /* Slightly bolder for modern typography */
+  font-size: 1rem; /* Clear, readable size */
+  color: #2c3e50; /* Darker, elegant color for contrast */
+  text-transform: uppercase; /* Adds a stylish touch */
+  letter-spacing: 0.05rem; /* Subtle letter spacing for refinement */
+}
+
+.user-input input[type='text'],
+.user-input input[type='file'] {
+  width: 100%;
+  max-width: 22rem; /* Slightly wider for better usability (≈ 352px) */
+  padding: 0.75rem; /* Increased padding for comfort (≈ 12px) */
+  border: 0.0625rem solid #ccc; /* Softer gray border */
+  border-radius: 0.375rem; /* Smoother, more modern corners (≈ 6px) */
+  background-color: #f9fafb; /* Light background for a clean look */
+  font-size: 1rem; /* Matches label for consistency */
+  color: #333; /* Dark text for readability */
+  box-shadow: inset 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.05); /* Subtle inner shadow */
+  transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transitions */
+}
+
+.user-input input[type='text']:focus,
+.user-input input[type='file']:focus {
+  outline: none; /* Remove default outline */
+  border-color: #007bff; /* Blue border on focus for feedback */
+  box-shadow: 0 0 0.375rem rgba(0, 123, 255, 0.3); /* Glow effect on focus */
+}
+
+.user-input input[type='text']::placeholder {
+  color: #a0aec0; /* Subtle placeholder color */
+  font-style: italic; /* Stylish placeholder text */
+}
+
+.banner-preview canvas {
+  border: 0.0625rem solid #ddd; /* Converted 1px to rem */
+  border-radius: 0.25rem; /* Converted 4px to rem */
+  max-width: 100%;
+}
+
+.action-buttons {
+  margin-top: 0.625rem; 
+  display: flex;
+  gap: 0.625rem; 
+}
+
+.action-buttons button {
+  padding: 0.625rem 1.25rem; 
+  border: none;
+  border-radius: 0.25rem; 
+  background-color: #007bff;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.action-buttons button:hover {
+  background-color: #0056b3;
+}
+
+/* src/App.css (relevant sections, unchanged) */
+.user-input {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.user-input h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.625rem;
+  color: #2c3e50;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}
+
+.user-input .input-group {
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.user-input label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}
+
+.user-input input[type='text'],
+.user-input input[type='file'] {
+  width: 100%;
+  max-width: 22rem;
+  padding: 0.75rem;
+  border: 0.0625rem solid #ccc;
+  border-radius: 0.375rem;
+  background-color: #f9fafb;
+  font-size: 1rem;
+  color: #333;
+  box-shadow: inset 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.05);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.user-input input[type='text']:focus,
+.user-input input[type='file']:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0.375rem rgba(0, 123, 255, 0.3);
+}
+
+.user-input input[type='text']::placeholder {
+  color: #a0aec0;
+  font-style: italic;
+}
+
+.loading-text {
+  font-size: 0.875rem;
+  color: #2c3e50;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.banner-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.banner-preview h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.625rem;
+  color: #2c3e50;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}
+
+.banner-preview .drag-instructions {
+  font-size: 0.875rem;
+  color: #2c3e50;
+  font-weight: 500;
+  margin-bottom: 0.625rem;
+}
+
+.canvas-container {
+  position: relative;
+}
+
+.banner-preview canvas {
+  border: 0.0625rem solid #ccc;
+  border-radius: 0.375rem;
+  max-width: 100%;
+  background-color: #f9fafb;
+}
+
+.edit-input {
+  padding: 0.5rem;
+  font-size: 1rem;
+  color: #333;
+  background-color: #f9fafb;
+  border: 0.0625rem solid #ccc;
+  border-radius: 0.375rem;
+  box-shadow: inset 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.05);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.edit-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0.375rem rgba(0, 123, 255, 0.3);
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.control-group label {
+  font-size: 0.875rem;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.resize-slider {
+  width: 12rem;
+  cursor: pointer;
+}
+
+.action-buttons {
+  margin-top: 0.625rem;
+  display: flex;
+  gap: 0.625rem;
+}
+
+.action-buttons button {
+  padding: 0.625rem 1.25rem;
+  border: none;
+  border-radius: 0.375rem;
+  background-color: #007bff;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.action-buttons button:hover {
+  background-color: #0056b3;
+  transform: translateY(-0.125rem);
+}
+
+/* Responsive design */
+@media (max-width: 48rem) { /* Converted 768px to rem (768/16 = 48rem) */
+  .header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .logo {
+    margin-bottom: 0.625rem; /* Converted 10px to rem */
+  }
+
+  .template-grid {
+    grid-template-columns: 1fr;
+  }
+}
