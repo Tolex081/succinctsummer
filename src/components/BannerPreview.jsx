@@ -6,7 +6,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
   const ctxRef = useRef(null);
   const imageCache = useRef({});
   const [pfpPos, setPfpPos] = useState({ x: 50, y: 50 });
-  const [xPos, setXPos] = useState({ x: 200, y: 100 });
+  const [xTextPos, setXTextPos] = useState({ x: 200, y: 100 });
   const [pfpSize, setPfpSize] = useState(100);
   const [fontSize, setFontSize] = useState(20);
   const [pfpRotation, setPfpRotation] = useState(0);
@@ -22,9 +22,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
   }, [xUsername]);
 
   const loadImage = useCallback((src) => {
-    if (imageCache.current[src]) {
-      return Promise.resolve(imageCache.current[src]);
-    }
+    if (imageCache.current[src]) return Promise.resolve(imageCache.current[src]);
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.src = src;
@@ -48,7 +46,6 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
 
     const drawCanvas = async () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       try {
         const templateImg = await loadImage(selectedTemplate.src);
         ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
@@ -63,16 +60,16 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
         }
 
         ctx.save();
-        ctx.translate(xPos.x + fontSize * 1.25 / 2, xPos.y);
+        ctx.translate(xTextPos.x + fontSize * 1.25 / 2, xTextPos.y);
         ctx.rotate((xRotation * Math.PI) / 180);
-        const xIconImg = await loadImage(xIcon);
-        ctx.drawImage(xIconImg, -fontSize * 1.25 / 2, -fontSize * 0.75, fontSize, fontSize);
+        const icon = await loadImage(xIcon);
+        ctx.drawImage(icon, -fontSize * 1.25 / 2, -fontSize * 0.75, fontSize, fontSize);
         ctx.font = `${fontSize}px Arial`;
         ctx.fillStyle = '#000';
         ctx.fillText(tempXUsername || 'N/A', -fontSize * 1.25 / 2 + fontSize * 1.25, 0);
         ctx.restore();
-      } catch (error) {
-        console.error('Error loading images:', error);
+      } catch (err) {
+        console.error(err);
       }
     };
 
@@ -81,43 +78,55 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
 
   const debounceDrag = useCallback((updateFn, newPos) => {
     if (dragTimeout.current) clearTimeout(dragTimeout.current);
-    dragTimeout.current = setTimeout(() => {
-      updateFn(newPos);
-    }, 16);
+    dragTimeout.current = setTimeout(() => updateFn(newPos), 16);
   }, []);
 
-  const handleMouseDown = (e) => {
+  const getCoords = (e) => {
     const canvas = canvasRef.current;
-    const ctx = ctxRef.current;
     const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    if (e.touches) {
+      return {
+        x: e.touches[0].clientX - rect.left,
+        y: e.touches[0].clientY - rect.top,
+      };
+    }
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+  };
 
+  const handleStart = (e) => {
+    const { x, y } = getCoords(e);
+    const ctx = ctxRef.current;
+
+    // Check PFP drag
     if (
       pfp &&
-      mouseX >= pfpPos.x &&
-      mouseX <= pfpPos.x + pfpSize &&
-      mouseY >= pfpPos.y &&
-      mouseY <= pfpPos.y + pfpSize
+      x >= pfpPos.x &&
+      x <= pfpPos.x + pfpSize &&
+      y >= pfpPos.y &&
+      y <= pfpPos.y + pfpSize
     ) {
       setDragging('pfp');
-      setOffset({ x: mouseX - pfpPos.x, y: mouseY - pfpPos.y });
+      setOffset({ x: x - pfpPos.x, y: y - pfpPos.y });
       setEditing(null);
       return;
     }
 
+    // Check X text drag
     const xWidth = ctx.measureText(tempXUsername || 'N/A').width + fontSize * 1.25;
     if (
-      mouseX >= xPos.x &&
-      mouseX <= xPos.x + xWidth &&
-      mouseY >= xPos.y - fontSize &&
-      mouseY <= xPos.y
+      x >= xTextPos.x &&
+      x <= xTextPos.x + xWidth &&
+      y >= xTextPos.y - fontSize &&
+      y <= xTextPos.y
     ) {
-      if (e.detail === 2) {
+      if (!e.touches && e.detail === 2) {
         setEditing('x');
       } else {
         setDragging('x');
-        setOffset({ x: mouseX - xPos.x, y: mouseY - xPos.y });
+        setOffset({ x: x - xTextPos.x, y: y - xTextPos.y });
       }
       return;
     }
@@ -125,95 +134,25 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
     setEditing(null);
   };
 
-  const handleMouseMove = (e) => {
+  const handleMove = (e) => {
     if (!dragging) return;
-
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    if (dragging === 'pfp') {
-      const newX = Math.max(0, Math.min(mouseX - offset.x, canvas.width - pfpSize));
-      const newY = Math.max(0, Math.min(mouseY - offset.y, canvas.height - pfpSize));
-      debounceDrag(setPfpPos, { x: newX, y: newY });
-    } else if (dragging === 'x') {
-      const newX = Math.max(0, Math.min(mouseX - offset.x, canvas.width - fontSize));
-      const newY = Math.max(fontSize, Math.min(mouseY - offset.y, canvas.height));
-      debounceDrag(setXPos, { x: newX, y: newY });
-    }
-  };
-
-  const handleMouseUp = () => {
-    setDragging(null);
-    if (dragTimeout.current) clearTimeout(dragTimeout.current);
-  };
-
-  // --- MOBILE TOUCH SUPPORT ---
-  const getTouchPosition = (touch) => {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: touch.clientX - rect.left,
-      y: touch.clientY - rect.top,
-    };
-  };
-
-  const handleTouchStart = (e) => {
-    if (e.touches.length !== 1) return;
-    const touch = e.touches[0];
-    const { x: touchX, y: touchY } = getTouchPosition(touch);
-    const ctx = ctxRef.current;
-
-    if (
-      pfp &&
-      touchX >= pfpPos.x &&
-      touchX <= pfpPos.x + pfpSize &&
-      touchY >= pfpPos.y &&
-      touchY <= pfpPos.y + pfpSize
-    ) {
-      setDragging('pfp');
-      setOffset({ x: touchX - pfpPos.x, y: touchY - pfpPos.y });
-      setEditing(null);
-      return;
-    }
-
-    const xWidth = ctx.measureText(tempXUsername || 'N/A').width + fontSize * 1.25;
-    if (
-      touchX >= xPos.x &&
-      touchX <= xPos.x + xWidth &&
-      touchY >= xPos.y - fontSize &&
-      touchY <= xPos.y
-    ) {
-      setDragging('x');
-      setOffset({ x: touchX - xPos.x, y: touchY - xPos.y });
-      setEditing(null);
-      return;
-    }
-
-    setEditing(null);
-  };
-
-  const handleTouchMove = (e) => {
-    if (!dragging || e.touches.length !== 1) return;
-    const touch = e.touches[0];
-    const { x: touchX, y: touchY } = getTouchPosition(touch);
+    const { x, y } = getCoords(e);
     const canvas = canvasRef.current;
 
     if (dragging === 'pfp') {
-      const newX = Math.max(0, Math.min(touchX - offset.x, canvas.width - pfpSize));
-      const newY = Math.max(0, Math.min(touchY - offset.y, canvas.height - pfpSize));
+      const newX = Math.max(0, Math.min(x - offset.x, canvas.width - pfpSize));
+      const newY = Math.max(0, Math.min(y - offset.y, canvas.height - pfpSize));
       debounceDrag(setPfpPos, { x: newX, y: newY });
     } else if (dragging === 'x') {
-      const newX = Math.max(0, Math.min(touchX - offset.x, canvas.width - fontSize));
-      const newY = Math.max(fontSize, Math.min(touchY - offset.y, canvas.height));
-      debounceDrag(setXPos, { x: newX, y: newY });
+      const newX = Math.max(0, Math.min(x - offset.x, canvas.width - fontSize * 8));
+      const newY = Math.max(fontSize, Math.min(y - offset.y, canvas.height));
+      debounceDrag(setXTextPos, { x: newX, y: newY });
     }
 
-    e.preventDefault(); // prevent scrolling while dragging
+    if (e.cancelable) e.preventDefault();
   };
 
-  const handleTouchEnd = () => {
+  const handleEnd = () => {
     setDragging(null);
     if (dragTimeout.current) clearTimeout(dragTimeout.current);
   };
@@ -239,30 +178,28 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
     link.download = 'custom-banner.png';
     link.href = imageDataUrl;
     link.click();
-
-    const caption = encodeURIComponent('Check out my custom banner! Created with a cool banner generator.');
-    const xIntentUrl = `https://x.com/intent/tweet?text=${caption}`;
-    window.open(xIntentUrl, '_blank');
-    alert('Banner downloaded. Click the image icon in the X window to attach "custom-banner.png".');
+    const caption = encodeURIComponent('Check out my custom banner Created with a cool banner generator create yours  here https://succinctsummer.vercel.app/!');
+    window.open(`https://x.com/intent/tweet?text=${caption}`, '_blank');
+    alert('Banner downloaded. Attach "custom-banner.png" manually in the tweet.');
   };
 
   return (
     <div className="banner-preview">
       <h2>Preview Your Banner</h2>
       <p className="drag-instructions">
-        Drag elements on desktop or mobile. Double-tap username to edit. Resize/rotate below.
+        Drag PFP or X text. Double-click/tap username to edit. Use sliders to resize/rotate.
       </p>
       {selectedTemplate ? (
         <>
           <div className="canvas-container">
             <canvas
               ref={canvasRef}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
+              onMouseDown={handleStart}
+              onMouseMove={handleMove}
+              onMouseUp={handleEnd}
+              onTouchStart={handleStart}
+              onTouchMove={handleMove}
+              onTouchEnd={handleEnd}
               style={{ cursor: dragging ? 'grabbing' : 'grab', touchAction: 'none' }}
             ></canvas>
             {editing === 'x' && (
@@ -273,9 +210,9 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                 className="edit-input"
                 style={{
                   position: 'absolute',
-                  left: `${xPos.x + fontSize * 1.25}px`,
-                  top: `${xPos.y - fontSize * 0.75}px`,
-                  width: `${ctxRef.current?.measureText(tempXUsername || 'N/A').width}px`,
+                  left: `${xTextPos.x + fontSize * 1.25}px`,
+                  top: `${xTextPos.y - fontSize * 0.75}px`,
+                  width: `${ctxRef.current?.measureText(tempXUsername || 'N/A').width || 100}px`,
                   transform: `rotate(${xRotation}deg)`,
                 }}
                 onBlur={() => setEditing(null)}
