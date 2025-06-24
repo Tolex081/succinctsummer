@@ -19,7 +19,6 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
 
   useEffect(() => {
     setTempXUsername(xUsername);
-    console.log('Props updated:', { xUsername });
   }, [xUsername]);
 
   const loadImage = useCallback((src) => {
@@ -51,7 +50,6 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       try {
-        console.log('Drawing username:', { tempXUsername });
         const templateImg = await loadImage(selectedTemplate.src);
         ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
 
@@ -79,12 +77,10 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
     };
 
     drawCanvas();
-  },);
+  });
 
   const debounceDrag = useCallback((updateFn, newPos) => {
-    if (dragTimeout.current) {
-      clearTimeout(dragTimeout.current);
-    }
+    if (dragTimeout.current) clearTimeout(dragTimeout.current);
     dragTimeout.current = setTimeout(() => {
       updateFn(newPos);
     }, 16);
@@ -150,30 +146,83 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
 
   const handleMouseUp = () => {
     setDragging(null);
-    if (dragTimeout.current) {
-      clearTimeout(dragTimeout.current);
+    if (dragTimeout.current) clearTimeout(dragTimeout.current);
+  };
+
+  // --- MOBILE TOUCH SUPPORT ---
+  const getTouchPosition = (touch) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
+    };
+  };
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const { x: touchX, y: touchY } = getTouchPosition(touch);
+    const ctx = ctxRef.current;
+
+    if (
+      pfp &&
+      touchX >= pfpPos.x &&
+      touchX <= pfpPos.x + pfpSize &&
+      touchY >= pfpPos.y &&
+      touchY <= pfpPos.y + pfpSize
+    ) {
+      setDragging('pfp');
+      setOffset({ x: touchX - pfpPos.x, y: touchY - pfpPos.y });
+      setEditing(null);
+      return;
     }
+
+    const xWidth = ctx.measureText(tempXUsername || 'N/A').width + fontSize * 1.25;
+    if (
+      touchX >= xPos.x &&
+      touchX <= xPos.x + xWidth &&
+      touchY >= xPos.y - fontSize &&
+      touchY <= xPos.y
+    ) {
+      setDragging('x');
+      setOffset({ x: touchX - xPos.x, y: touchY - xPos.y });
+      setEditing(null);
+      return;
+    }
+
+    setEditing(null);
   };
 
-  const handlePfpSizeChange = (e) => {
-    setPfpSize(Number(e.target.value));
+  const handleTouchMove = (e) => {
+    if (!dragging || e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const { x: touchX, y: touchY } = getTouchPosition(touch);
+    const canvas = canvasRef.current;
+
+    if (dragging === 'pfp') {
+      const newX = Math.max(0, Math.min(touchX - offset.x, canvas.width - pfpSize));
+      const newY = Math.max(0, Math.min(touchY - offset.y, canvas.height - pfpSize));
+      debounceDrag(setPfpPos, { x: newX, y: newY });
+    } else if (dragging === 'x') {
+      const newX = Math.max(0, Math.min(touchX - offset.x, canvas.width - fontSize));
+      const newY = Math.max(fontSize, Math.min(touchY - offset.y, canvas.height));
+      debounceDrag(setXPos, { x: newX, y: newY });
+    }
+
+    e.preventDefault(); // prevent scrolling while dragging
   };
 
-  const handleFontSizeChange = (e) => {
-    setFontSize(Number(e.target.value));
+  const handleTouchEnd = () => {
+    setDragging(null);
+    if (dragTimeout.current) clearTimeout(dragTimeout.current);
   };
 
-  const handlePfpRotationChange = (e) => {
-    setPfpRotation(Number(e.target.value));
-  };
-
-  const handleXRotationChange = (e) => {
-    setXRotation(Number(e.target.value));
-  };
-
-  const handleXEdit = (e) => {
-    setTempXUsername(e.target.value);
-  };
+  const handlePfpSizeChange = (e) => setPfpSize(Number(e.target.value));
+  const handleFontSizeChange = (e) => setFontSize(Number(e.target.value));
+  const handlePfpRotationChange = (e) => setPfpRotation(Number(e.target.value));
+  const handleXRotationChange = (e) => setXRotation(Number(e.target.value));
+  const handleXEdit = (e) => setTempXUsername(e.target.value);
 
   const handleDownload = () => {
     const canvas = canvasRef.current;
@@ -186,28 +235,22 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
   const handleShare = () => {
     const canvas = canvasRef.current;
     const imageDataUrl = canvas.toDataURL('image/png');
-
-    // Auto-download the image for user to attach
     const link = document.createElement('a');
     link.download = 'custom-banner.png';
     link.href = imageDataUrl;
     link.click();
 
-    // Prepare X post caption
     const caption = encodeURIComponent('Check out my custom banner! Created with a cool banner generator.');
-    // Open X Web Intent with pre-populated caption
     const xIntentUrl = `https://x.com/intent/tweet?text=${caption}`;
     window.open(xIntentUrl, '_blank');
-
-    // Prompt user to attach the downloaded image
-    alert('The banner image has been downloaded. In the X post window, click the image icon to attach the downloaded "custom-banner.png" file.');
+    alert('Banner downloaded. Click the image icon in the X window to attach "custom-banner.png".');
   };
 
   return (
     <div className="banner-preview">
       <h2>Preview Your Banner</h2>
       <p className="drag-instructions">
-        Click and drag to move, double-click X username to edit, use sliders to resize or rotate.
+        Drag elements on desktop or mobile. Double-tap username to edit. Resize/rotate below.
       </p>
       {selectedTemplate ? (
         <>
@@ -217,7 +260,10 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
-              style={{ cursor: dragging ? 'grabbing' : 'grab' }}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              style={{ cursor: dragging ? 'grabbing' : 'grab', touchAction: 'none' }}
             ></canvas>
             {editing === 'x' && (
               <input
@@ -239,48 +285,20 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
           </div>
           <div className="controls">
             <div className="control-group">
-              <label>PFP Size (Width/Height): {pfpSize}px</label>
-              <input
-                type="range"
-                min="50"
-                max="200"
-                value={pfpSize}
-                onChange={handlePfpSizeChange}
-                className="resize-slider"
-              />
+              <label>PFP Size: {pfpSize}px</label>
+              <input type="range" min="50" max="200" value={pfpSize} onChange={handlePfpSizeChange} />
             </div>
             <div className="control-group">
               <label>PFP Rotation: {pfpRotation}°</label>
-              <input
-                type="range"
-                min="0"
-                max="360"
-                value={pfpRotation}
-                onChange={handlePfpRotationChange}
-                className="resize-slider"
-              />
+              <input type="range" min="0" max="360" value={pfpRotation} onChange={handlePfpRotationChange} />
             </div>
             <div className="control-group">
               <label>Text/Icon Size: {fontSize}px</label>
-              <input
-                type="range"
-                min="12"
-                max="40"
-                value={fontSize}
-                onChange={handleFontSizeChange}
-                className="resize-slider"
-              />
+              <input type="range" min="12" max="40" value={fontSize} onChange={handleFontSizeChange} />
             </div>
             <div className="control-group">
               <label>X Rotation: {xRotation}°</label>
-              <input
-                type="range"
-                min="0"
-                max="360"
-                value={xRotation}
-                onChange={handleXRotationChange}
-                className="resize-slider"
-              />
+              <input type="range" min="0" max="360" value={xRotation} onChange={handleXRotationChange} />
             </div>
           </div>
           <div className="action-buttons">
