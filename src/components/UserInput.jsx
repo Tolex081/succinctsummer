@@ -43,7 +43,7 @@ function UserInput({ setPfp, setXUsername }) {
           onChange={handlePfpUpload}
           disabled={isLoading}
         />
-        {isLoading && <p className="loading-text">Removing background...</p>}
+        {isLoading && <p className="loading-text">Removing background Succant be patient...</p>}
       </div>
       <div className="input-group">
         <label>X Username:</label>

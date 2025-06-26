@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-// import pinkTemplate1 from '../assets/pink-template-1.jpg';
-// import pinkTemplate2 from '../assets/pink-template-2.jpg';
-import blueTemplate1 from '../assets/blue-template1.jpg';
-import blueTemplate2 from '../assets/blue-template2.jpg';
-// import purpleTemplate1 from '../assets/purple-template-1.jpg';
+import pinkTemplate1 from '../assets/Pink-template1.jpg';
+import pinkTemplate2 from '../assets/Pink-template2.jpg';
+import blueTemplate1 from '../assets/Blue-template1.jpg';
+import blueTemplate2 from '../assets/Blue-template2.jpg';
+import purpleTemplate1 from '../assets/Purple-template1.jpg';
 // import purpleTemplate2 from '../assets/purple-template-2.jpg';
 // import orangeTemplate1 from '../assets/orange-template-1.jpg';
 // import orangeTemplate2 from '../assets/orange-template-2.jpg';
@@ -11,13 +11,13 @@ import blueTemplate2 from '../assets/blue-template2.jpg';
 // import greenTemplate2 from '../assets/green-template-2.jpg';
 
 const templates = [
-  // {
-  //   team: 'Pink',
-  //   templates: [
-  //     { id: 'pink-1', src: pinkTemplate1, name: 'Pink Template 1' },
-  //     { id: 'pink-2', src: pinkTemplate2, name: 'Pink Template 2' },
-  //   ],
-  // },
+  {
+    team: 'Pink',
+    templates: [
+      { id: 'pink-1', src: pinkTemplate1, name: 'Pink Template 1' },
+      { id: 'pink-2', src: pinkTemplate2, name: 'Pink Template 2' },
+    ],
+  },
   {
     team: 'Blue',
     templates: [
@@ -25,13 +25,13 @@ const templates = [
       { id: 'blue-2', src: blueTemplate2, name: 'Blue Template 2' },
     ],
   },
-  // {
-  //   team: 'Purple',
-  //   templates: [
-  //     { id: 'purple-1', src: purpleTemplate1, name: 'Purple Template 1' },
-  //     { id: 'purple-2', src: purpleTemplate2, name: 'Purple Template 2' },
-  //   ],
-  // },
+  {
+    team: 'Purple',
+    templates: [
+      { id: 'purple-1', src: purpleTemplate1, name: 'Purple Template 1' },
+      // { id: 'purple-2', src: purpleTemplate2, name: 'Purple Template 2' },
+    ],
+  },
   // {
   //   team: 'Orange',
   //   templates: [

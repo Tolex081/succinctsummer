@@ -1,21 +1,22 @@
+// BannerPreview.js
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { Rnd } from 'react-rnd';
 import xIcon from '../assets/x-icon.png';
 
 function BannerPreview({ selectedTemplate, pfp, xUsername }) {
   const canvasRef = useRef(null);
-  const ctxRef = useRef(null);
   const imageCache = useRef({});
-  const [pfpPos, setPfpPos] = useState({ x: 50, y: 50 });
-  const [xTextPos, setXTextPos] = useState({ x: 200, y: 100 });
-  const [pfpSize, setPfpSize] = useState(100);
+  const [pfpSize, setPfpSize] = useState({ width: 100, height: 100 });
   const [fontSize, setFontSize] = useState(20);
   const [pfpRotation, setPfpRotation] = useState(0);
   const [xRotation, setXRotation] = useState(0);
-  const [dragging, setDragging] = useState(null);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [editing, setEditing] = useState(null);
   const [tempXUsername, setTempXUsername] = useState(xUsername);
-  const dragTimeout = useRef(null);
+  const [pfpPosition, setPfpPosition] = useState({ x: 50, y: 50 });
+  const [xPosition, setXPosition] = useState({ x: 200, y: 100 });
+  const [isExporting, setIsExporting] = useState(false);
+  const [templateDimensions, setTemplateDimensions] = useState({ width: 800, height: 200 });
+  const [displayDimensions, setDisplayDimensions] = useState({ width: 800, height: 200 });
+  const containerRef = useRef(null);
 
   useEffect(() => {
     setTempXUsername(xUsername);
@@ -26,6 +27,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.src = src;
+      img.crossOrigin = 'anonymous';
       img.onload = () => {
         imageCache.current[src] = img;
         resolve(img);
@@ -34,210 +36,304 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
     });
   }, []);
 
+  // Load template and get its natural dimensions
   useEffect(() => {
-    if (!selectedTemplate) return;
+    if (selectedTemplate) {
+      loadImage(selectedTemplate.src).then((img) => {
+        const naturalWidth = img.naturalWidth;
+        const naturalHeight = img.naturalHeight;
+        
+        setTemplateDimensions({
+          width: naturalWidth,
+          height: naturalHeight
+        });
 
+        // Calculate display dimensions (with max constraints)
+        const maxWidth = 1200;
+        const maxHeight = 400;
+        const aspectRatio = naturalWidth / naturalHeight;
+        
+        let displayWidth = naturalWidth;
+        let displayHeight = naturalHeight;
+        
+        if (displayWidth > maxWidth) {
+          displayWidth = maxWidth;
+          displayHeight = displayWidth / aspectRatio;
+        }
+        
+        if (displayHeight > maxHeight) {
+          displayHeight = maxHeight;
+          displayWidth = displayHeight * aspectRatio;
+        }
+        
+        setDisplayDimensions({
+          width: displayWidth,
+          height: displayHeight
+        });
+      }).catch(console.error);
+    }
+  }, [selectedTemplate, loadImage]);
+
+  const drawCanvas = useCallback(async () => {
+    if (!selectedTemplate) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    ctxRef.current = ctx;
+    
+    // Use natural dimensions of the template image
+    canvas.width = templateDimensions.width;
+    canvas.height = templateDimensions.height;
 
-    canvas.width = 800;
-    canvas.height = 200;
+    // Calculate scale factors to convert display positions to canvas positions
+    const scaleX = templateDimensions.width / displayDimensions.width;
+    const scaleY = templateDimensions.height / displayDimensions.height;
 
-    const drawCanvas = async () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      try {
-        const templateImg = await loadImage(selectedTemplate.src);
-        ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        if (pfp) {
-          const pfpImg = await loadImage(pfp);
-          ctx.save();
-          ctx.translate(pfpPos.x + pfpSize / 2, pfpPos.y + pfpSize / 2);
-          ctx.rotate((pfpRotation * Math.PI) / 180);
-          ctx.drawImage(pfpImg, -pfpSize / 2, -pfpSize / 2, pfpSize, pfpSize);
-          ctx.restore();
-        }
+    try {
+      // Draw template at its natural size
+      const templateImg = await loadImage(selectedTemplate.src);
+      ctx.drawImage(templateImg, 0, 0, templateDimensions.width, templateDimensions.height);
 
+      // Draw PFP if available (scale positions and sizes)
+      if (pfp) {
+        const pfpImg = await loadImage(pfp);
+        const scaledX = pfpPosition.x * scaleX;
+        const scaledY = pfpPosition.y * scaleY;
+        const scaledWidth = pfpSize.width * scaleX;
+        const scaledHeight = pfpSize.height * scaleY;
+        
         ctx.save();
-        ctx.translate(xTextPos.x + fontSize * 1.25 / 2, xTextPos.y);
-        ctx.rotate((xRotation * Math.PI) / 180);
-        const icon = await loadImage(xIcon);
-        ctx.drawImage(icon, -fontSize * 1.25 / 2, -fontSize * 0.75, fontSize, fontSize);
-        ctx.font = `${fontSize}px Arial`;
-        ctx.fillStyle = '#000';
-        ctx.fillText(tempXUsername || 'N/A', -fontSize * 1.25 / 2 + fontSize * 1.25, 0);
+        ctx.translate(scaledX + scaledWidth / 2, scaledY + scaledHeight / 2);
+        ctx.rotate((pfpRotation * Math.PI) / 180);
+        ctx.drawImage(pfpImg, -scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
         ctx.restore();
-      } catch (err) {
-        console.error(err);
       }
-    };
 
-    drawCanvas();
-  });
-
-  const debounceDrag = useCallback((updateFn, newPos) => {
-    if (dragTimeout.current) clearTimeout(dragTimeout.current);
-    dragTimeout.current = setTimeout(() => updateFn(newPos), 16);
-  }, []);
-
-  const getCoords = (e) => {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    if (e.touches) {
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top,
-      };
-    }
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
-  };
-
-  const handleStart = (e) => {
-    const { x, y } = getCoords(e);
-    const ctx = ctxRef.current;
-
-    // Check PFP drag
-    if (
-      pfp &&
-      x >= pfpPos.x &&
-      x <= pfpPos.x + pfpSize &&
-      y >= pfpPos.y &&
-      y <= pfpPos.y + pfpSize
-    ) {
-      setDragging('pfp');
-      setOffset({ x: x - pfpPos.x, y: y - pfpPos.y });
-      setEditing(null);
-      return;
-    }
-
-    // Check X text drag
-    const xWidth = ctx.measureText(tempXUsername || 'N/A').width + fontSize * 1.25;
-    if (
-      x >= xTextPos.x &&
-      x <= xTextPos.x + xWidth &&
-      y >= xTextPos.y - fontSize &&
-      y <= xTextPos.y
-    ) {
-      if (!e.touches && e.detail === 2) {
-        setEditing('x');
-      } else {
-        setDragging('x');
-        setOffset({ x: x - xTextPos.x, y: y - xTextPos.y });
+      // Draw X icon and username (scale positions and sizes)
+      if (tempXUsername) {
+        const iconImg = await loadImage(xIcon);
+        const scaledX = xPosition.x * scaleX;
+        const scaledY = xPosition.y * scaleY;
+        const scaledFontSize = fontSize * scaleX;
+        
+        ctx.save();
+        ctx.translate(scaledX, scaledY);
+        ctx.rotate((xRotation * Math.PI) / 180);
+        ctx.drawImage(iconImg, 0, -scaledFontSize, scaledFontSize, scaledFontSize);
+        ctx.font = `bold ${scaledFontSize}px Arial`;
+        ctx.fillStyle = '#000';
+        ctx.fillText(tempXUsername, scaledFontSize + 5, 0);
+        ctx.restore();
       }
-      return;
+    } catch (err) {
+      console.error('Error drawing canvas:', err);
     }
+  }, [
+    selectedTemplate,
+    templateDimensions,
+    displayDimensions,
+    loadImage,
+    pfp,
+    pfpRotation,
+    pfpPosition,
+    pfpSize,
+    xPosition,
+    xRotation,
+    fontSize,
+    tempXUsername
+  ]);
 
-    setEditing(null);
-  };
-
-  const handleMove = (e) => {
-    if (!dragging) return;
-    const { x, y } = getCoords(e);
-    const canvas = canvasRef.current;
-
-    if (dragging === 'pfp') {
-      const newX = Math.max(0, Math.min(x - offset.x, canvas.width - pfpSize));
-      const newY = Math.max(0, Math.min(y - offset.y, canvas.height - pfpSize));
-      debounceDrag(setPfpPos, { x: newX, y: newY });
-    } else if (dragging === 'x') {
-      const newX = Math.max(0, Math.min(x - offset.x, canvas.width - fontSize * 8));
-      const newY = Math.max(fontSize, Math.min(y - offset.y, canvas.height));
-      debounceDrag(setXTextPos, { x: newX, y: newY });
+  // Only draw canvas during export
+  useEffect(() => {
+    if (isExporting && templateDimensions.width > 0 && displayDimensions.width > 0) {
+      drawCanvas();
     }
+  }, [drawCanvas, isExporting, templateDimensions, displayDimensions]);
 
-    if (e.cancelable) e.preventDefault();
-  };
-
-  const handleEnd = () => {
-    setDragging(null);
-    if (dragTimeout.current) clearTimeout(dragTimeout.current);
-  };
-
-  const handlePfpSizeChange = (e) => setPfpSize(Number(e.target.value));
-  const handleFontSizeChange = (e) => setFontSize(Number(e.target.value));
-  const handlePfpRotationChange = (e) => setPfpRotation(Number(e.target.value));
-  const handleXRotationChange = (e) => setXRotation(Number(e.target.value));
-  const handleXEdit = (e) => setTempXUsername(e.target.value);
-
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    setIsExporting(true);
+    await drawCanvas();
     const canvas = canvasRef.current;
     const link = document.createElement('a');
     link.download = 'custom-banner.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
+    setIsExporting(false);
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
+    setIsExporting(true);
+    await drawCanvas();
     const canvas = canvasRef.current;
     const imageDataUrl = canvas.toDataURL('image/png');
     const link = document.createElement('a');
     link.download = 'custom-banner.png';
     link.href = imageDataUrl;
     link.click();
-    const caption = encodeURIComponent('Check out my custom banner Created with a cool banner generator create yours  here https://succinctsummer.vercel.app/!');
+    const caption = encodeURIComponent(
+      'Check out my custom banner Created with a cool banner generator create yours here https://succinctsummer.vercel.app/!'
+    );
     window.open(`https://x.com/intent/tweet?text=${caption}`, '_blank');
     alert('Banner downloaded. Attach "custom-banner.png" manually in the tweet.');
+    setIsExporting(false);
   };
 
   return (
     <div className="banner-preview">
       <h2>Preview Your Banner</h2>
       <p className="drag-instructions">
-        Drag PFP or X text. Double-click/tap username to edit. Use sliders to resize/rotate.
+        Drag and resize your PFP or X text/icon. Works on mobile and desktop.
       </p>
       {selectedTemplate ? (
         <>
-          <div className="canvas-container">
+          <div
+            ref={containerRef}
+            className="canvas-container"
+            style={{
+              position: 'relative',
+              background: '#fff',
+              width: displayDimensions.width,
+              height: displayDimensions.height,
+              overflow: 'hidden',
+              margin: '0 auto'
+            }}
+          >
+            {/* Hidden canvas for final rendering */}
             <canvas
               ref={canvasRef}
-              onMouseDown={handleStart}
-              onMouseMove={handleMove}
-              onMouseUp={handleEnd}
-              onTouchStart={handleStart}
-              onTouchMove={handleMove}
-              onTouchEnd={handleEnd}
-              style={{ cursor: dragging ? 'grabbing' : 'grab', touchAction: 'none' }}
-            ></canvas>
-            {editing === 'x' && (
-              <input
-                type="text"
-                value={tempXUsername}
-                onChange={handleXEdit}
-                className="edit-input"
+              className="hidden-canvas"
+              style={{
+                display: 'none'
+              }}
+            />
+
+            {/* Background template image */}
+            <img
+              src={selectedTemplate.src}
+              alt="Template"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                zIndex: 0
+              }}
+            />
+
+            {/* PFP Draggable Component */}
+            <Rnd
+              bounds="parent"
+              size={pfpSize}
+              position={pfpPosition}
+              onDragStop={(e, d) => setPfpPosition({ x: d.x, y: d.y })}
+              onResizeStop={(e, direction, ref, delta, position) => {
+                setPfpSize({ width: ref.offsetWidth, height: ref.offsetHeight });
+                setPfpPosition(position);
+              }}
+              enableResizing={true}
+              resizeHandleStyles={{
+                top: { cursor: 'ns-resize' },
+                right: { cursor: 'ew-resize' },
+                bottom: { cursor: 'ns-resize' },
+                left: { cursor: 'ew-resize' },
+                topRight: { cursor: 'ne-resize' },
+                bottomRight: { cursor: 'se-resize' },
+                bottomLeft: { cursor: 'sw-resize' },
+                topLeft: { cursor: 'nw-resize' }
+              }}
+              style={{
+                border: '2px dashed #90DCFF',
+                background: 'transparent',
+                touchAction: 'none',
+                zIndex: 10
+              }}
+            >
+              {pfp && (
+                <img
+                  src={pfp}
+                  alt="PFP"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    transform: `rotate(${pfpRotation}deg)`,
+                    pointerEvents: 'none'
+                  }}
+                />
+              )}
+            </Rnd>
+
+            {/* X Username Draggable Component */}
+            <Rnd
+              bounds="parent"
+              size={{ width: Math.max(fontSize * 8, 150), height: fontSize * 2 }}
+              position={xPosition}
+              onDragStop={(e, d) => setXPosition({ x: d.x, y: d.y })}
+              enableResizing={false}
+              style={{
+                border: '1px dashed #781961',
+                padding: '0.25rem',
+                background: 'rgba(255, 255, 255, 0.8)',
+                touchAction: 'none',
+                zIndex: 10
+              }}
+            >
+              <div
                 style={{
-                  position: 'absolute',
-                  left: `${xTextPos.x + fontSize * 1.25}px`,
-                  top: `${xTextPos.y - fontSize * 0.75}px`,
-                  width: `${ctxRef.current?.measureText(tempXUsername || 'N/A').width || 100}px`,
+                  display: 'flex',
+                  alignItems: 'center',
                   transform: `rotate(${xRotation}deg)`,
+                  pointerEvents: 'none'
                 }}
-                onBlur={() => setEditing(null)}
-                autoFocus
-              />
-            )}
+              >
+                <img
+                  src={xIcon}
+                  alt="X icon"
+                  style={{ width: fontSize, height: fontSize, marginRight: '0.5rem' }}
+                />
+                <span style={{ fontSize, fontWeight: 'bold', color: '#000' }}>
+                  {tempXUsername}
+                </span>
+              </div>
+            </Rnd>
           </div>
+
           <div className="controls">
             <div className="control-group">
-              <label>PFP Size: {pfpSize}px</label>
-              <input type="range" min="50" max="200" value={pfpSize} onChange={handlePfpSizeChange} />
-            </div>
-            <div className="control-group">
               <label>PFP Rotation: {pfpRotation}°</label>
-              <input type="range" min="0" max="360" value={pfpRotation} onChange={handlePfpRotationChange} />
+              <input
+                type="range"
+                min="0"
+                max="360"
+                value={pfpRotation}
+                onChange={(e) => setPfpRotation(Number(e.target.value))}
+              />
             </div>
             <div className="control-group">
               <label>Text/Icon Size: {fontSize}px</label>
-              <input type="range" min="12" max="40" value={fontSize} onChange={handleFontSizeChange} />
+              <input
+                type="range"
+                min="12"
+                max="40"
+                value={fontSize}
+                onChange={(e) => setFontSize(Number(e.target.value))}
+              />
             </div>
             <div className="control-group">
               <label>X Rotation: {xRotation}°</label>
-              <input type="range" min="0" max="360" value={xRotation} onChange={handleXRotationChange} />
+              <input
+                type="range"
+                min="0"
+                max="360"
+                value={xRotation}
+                onChange={(e) => setXRotation(Number(e.target.value))}
+              />
             </div>
           </div>
+
           <div className="action-buttons">
             <button onClick={handleDownload}>Download Banner</button>
             <button onClick={handleShare}>Share to X</button>
