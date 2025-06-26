@@ -48,9 +48,9 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
           height: naturalHeight
         });
 
-        // Calculate display dimensions (with max constraints)
-        const maxWidth = 1200;
-        const maxHeight = 400;
+        // Calculate display dimensions (responsive constraints)
+        const maxWidth = window.innerWidth > 768 ? 1000 : window.innerWidth - 40;
+        const maxHeight = window.innerWidth > 768 ? 300 : 200;
         const aspectRatio = naturalWidth / naturalHeight;
         
         let displayWidth = naturalWidth;
@@ -180,9 +180,19 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
   };
 
   return (
-    <div className="banner-preview">
-      <h2>Preview Your Banner</h2>
-      <p className="drag-instructions">
+    <div className="banner-preview" style={{ padding: '20px', maxWidth: '100%', boxSizing: 'border-box' }}>
+      <h2 style={{ textAlign: 'center', marginBottom: '10px', fontSize: 'clamp(1.5rem, 4vw, 2rem)' }}>
+        Preview Your Banner
+      </h2>
+      <p 
+        className="drag-instructions"
+        style={{ 
+          textAlign: 'center', 
+          marginBottom: '20px', 
+          fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+          color: '#666'
+        }}
+      >
         Drag and resize your PFP or X text/icon. Works on mobile and desktop.
       </p>
       {selectedTemplate ? (
@@ -192,11 +202,16 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
             className="canvas-container"
             style={{
               position: 'relative',
-              background: '#fff',
+              background: 'transparent',
               width: displayDimensions.width,
               height: displayDimensions.height,
               overflow: 'hidden',
-              margin: '0 auto'
+              margin: '0 auto',
+              border: '2px solid #e0e0e0',
+              borderRadius: '8px',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              maxWidth: '100%',
+              boxSizing: 'border-box'
             }}
           >
             {/* Hidden canvas for final rendering */}
@@ -246,7 +261,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
               }}
               style={{
                 border: '2px dashed #90DCFF',
-                background: 'transparent',
+                background: '#fff',
                 touchAction: 'none',
                 zIndex: 10
               }}
@@ -275,8 +290,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
               enableResizing={false}
               style={{
                 border: '1px dashed #781961',
-                padding: '0.25rem',
-                background: 'rgba(255, 255, 255, 0.8)',
+                background: '#fff',
                 touchAction: 'none',
                 zIndex: 10
               }}
@@ -301,46 +315,123 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
             </Rnd>
           </div>
 
-          <div className="controls">
-            <div className="control-group">
-              <label>PFP Rotation: {pfpRotation}°</label>
+          <div className="controls" style={{ 
+            display: 'flex', 
+            flexDirection: window.innerWidth > 768 ? 'row' : 'column',
+            gap: '15px',
+            margin: '20px 0',
+            justifyContent: 'center',
+            flexWrap: 'wrap'
+          }}>
+            <div className="control-group" style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              minWidth: '200px',
+              gap: '5px'
+            }}>
+              <label style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                PFP Rotation: {pfpRotation}°
+              </label>
               <input
                 type="range"
                 min="0"
                 max="360"
                 value={pfpRotation}
                 onChange={(e) => setPfpRotation(Number(e.target.value))}
+                style={{ width: '100%' }}
               />
             </div>
-            <div className="control-group">
-              <label>Text/Icon Size: {fontSize}px</label>
+            <div className="control-group" style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              minWidth: '200px',
+              gap: '5px'
+            }}>
+              <label style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                Text/Icon Size: {fontSize}px
+              </label>
               <input
                 type="range"
                 min="12"
                 max="40"
                 value={fontSize}
                 onChange={(e) => setFontSize(Number(e.target.value))}
+                style={{ width: '100%' }}
               />
             </div>
-            <div className="control-group">
-              <label>X Rotation: {xRotation}°</label>
+            <div className="control-group" style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              minWidth: '200px',
+              gap: '5px'
+            }}>
+              <label style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                X Rotation: {xRotation}°
+              </label>
               <input
                 type="range"
                 min="0"
                 max="360"
                 value={xRotation}
                 onChange={(e) => setXRotation(Number(e.target.value))}
+                style={{ width: '100%' }}
               />
             </div>
           </div>
 
-          <div className="action-buttons">
-            <button onClick={handleDownload}>Download Banner</button>
-            <button onClick={handleShare}>Share to X</button>
+          <div className="action-buttons" style={{
+            display: 'flex',
+            gap: '10px',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            marginTop: '20px'
+          }}>
+            <button 
+              onClick={handleDownload}
+              style={{
+                padding: '12px 24px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                backgroundColor: '#1DA1F2',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                minWidth: '150px'
+              }}
+            >
+              Download Banner
+            </button>
+            <button 
+              onClick={handleShare}
+              style={{
+                padding: '12px 24px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                backgroundColor: '#000',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                minWidth: '150px'
+              }}
+            >
+              Share to X
+            </button>
           </div>
         </>
       ) : (
-        <p>Please select a template to preview.</p>
+        <p style={{ 
+          textAlign: 'center', 
+          color: '#666', 
+          fontSize: 'clamp(1rem, 3vw, 1.2rem)',
+          padding: '20px'
+        }}>
+          Please select a template to preview.
+        </p>
       )}
     </div>
   );
