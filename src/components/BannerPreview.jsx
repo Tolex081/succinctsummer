@@ -183,6 +183,22 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
     setIsExporting(false);
   };
 
+  // Calculate bounds to allow some overflow but prevent complete disappearance
+  const getBounds = useCallback(() => {
+    if (!containerRef.current) return undefined;
+    
+    const containerRect = containerRef.current.getBoundingClientRect();
+    // Smaller margin for mobile, larger for desktop
+    const margin = window.innerWidth <= 768 ? 20 : 50;
+    
+    return {
+      left: -margin,
+      top: -margin,
+      right: displayDimensions.width - margin,
+      bottom: displayDimensions.height - margin
+    };
+  }, [displayDimensions]);
+
   return (
     <div className="banner-preview" style={{ padding: '20px', maxWidth: '100%', boxSizing: 'border-box' }}>
       <h2 style={{ textAlign: 'center', marginBottom: '10px', fontSize: 'clamp(1.5rem, 4vw, 2rem)' }}>
@@ -209,7 +225,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
               background: 'transparent',
               width: displayDimensions.width,
               height: displayDimensions.height,
-              overflow: 'hidden',
+              overflow: 'visible', // Changed from 'hidden' to 'visible'
               margin: '0 auto',
               border: '2px solid #e0e0e0',
               borderRadius: '8px',
@@ -244,7 +260,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
 
             {/* PFP Draggable Component */}
             <Rnd
-              bounds="parent"
+              bounds={getBounds()}
               size={pfpSize}
               position={pfpPosition}
               onDragStop={(e, d) => setPfpPosition({ x: d.x, y: d.y })}
@@ -252,24 +268,30 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                 setPfpSize({ width: ref.offsetWidth, height: ref.offsetHeight });
                 setPfpPosition(position);
               }}
-              enableResizing={true}
+              enableResizing={window.innerWidth > 768} // Disable resizing on mobile for better touch experience
               resizeHandleStyles={{
-                top: { cursor: 'ns-resize' },
-                right: { cursor: 'ew-resize' },
-                bottom: { cursor: 'ns-resize' },
-                left: { cursor: 'ew-resize' },
-                topRight: { cursor: 'ne-resize' },
-                bottomRight: { cursor: 'se-resize' },
-                bottomLeft: { cursor: 'sw-resize' },
-                topLeft: { cursor: 'nw-resize' }
+                top: { cursor: 'ns-resize', backgroundColor: '#90DCFF', width: '100%', height: '8px' },
+                right: { cursor: 'ew-resize', backgroundColor: '#90DCFF', width: '8px', height: '100%' },
+                bottom: { cursor: 'ns-resize', backgroundColor: '#90DCFF', width: '100%', height: '8px' },
+                left: { cursor: 'ew-resize', backgroundColor: '#90DCFF', width: '8px', height: '100%' },
+                topRight: { cursor: 'ne-resize', backgroundColor: '#90DCFF', width: '12px', height: '12px' },
+                bottomRight: { cursor: 'se-resize', backgroundColor: '#90DCFF', width: '12px', height: '12px' },
+                bottomLeft: { cursor: 'sw-resize', backgroundColor: '#90DCFF', width: '12px', height: '12px' },
+                topLeft: { cursor: 'nw-resize', backgroundColor: '#90DCFF', width: '12px', height: '12px' }
               }}
               style={{
                 border: '2px dashed #90DCFF',
-                background: '#fff',
-                touchAction: 'manipulation',
-                zIndex: 10
+                background: 'rgba(255, 255, 255, 0.9)',
+                touchAction: 'none', // Better for mobile touch
+                zIndex: 10,
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                msUserSelect: 'none'
               }}
               dragHandleClassName="drag-handle"
+              // Mobile-specific props
+              disableDragging={false}
+              cancel=".resize-handle"
             >
               {pfp && (
                 <img
@@ -282,26 +304,37 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                     objectFit: 'cover',
                     transform: `rotate(${pfpRotation}deg)`,
                     pointerEvents: 'none',
-                    touchAction: 'manipulation'
+                    touchAction: 'none',
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    WebkitTouchCallout: 'none',
+                    WebkitUserDrag: 'none',
+                    msUserSelect: 'none'
                   }}
+                  draggable={false}
                 />
               )}
             </Rnd>
 
             {/* Username Text Draggable Component (No X Icon) */}
             <Rnd
-              bounds="parent"
-              size={{ width: Math.max(fontSize * 6, 120), height: fontSize * 1.5 }}
+              bounds={getBounds()}
+              size={{ width: Math.max(fontSize * 6, 120), height: Math.max(fontSize * 1.5, 40) }}
               position={xPosition}
               onDragStop={(e, d) => setXPosition({ x: d.x, y: d.y })}
               enableResizing={false}
               style={{
-                border: '1px dashed #781961',
-                background: '#fff',
-                touchAction: 'manipulation',
-                zIndex: 10
+                border: '2px dashed #781961',
+                background: 'rgba(255, 255, 255, 0.9)',
+                touchAction: 'none',
+                zIndex: 10,
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                msUserSelect: 'none',
+                minHeight: '40px' // Ensure minimum touch target size on mobile
               }}
               dragHandleClassName="text-drag-handle"
+              disableDragging={false}
             >
               <div
                 className="text-drag-handle"
@@ -310,16 +343,26 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   height: '100%',
+                  minHeight: '40px', // Ensure good touch target
+                  width: '100%',
                   transform: `rotate(${xRotation}deg)`,
                   pointerEvents: 'none',
-                  touchAction: 'manipulation'
+                  touchAction: 'none',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  WebkitTouchCallout: 'none',
+                  msUserSelect: 'none'
                 }}
               >
                 <span style={{ 
-                  fontSize, 
+                  fontSize: Math.max(fontSize, 14), // Ensure minimum readable size on mobile
                   fontWeight: 'bold', 
                   color: '#000',
-                  fontFamily: 'Montserrat, Arial, sans-serif'
+                  fontFamily: 'Montserrat, Arial, sans-serif',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  msUserSelect: 'none',
+                  pointerEvents: 'none'
                 }}>
                   {tempXUsername}
                 </span>
@@ -333,14 +376,18 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
             gap: '15px',
             margin: '20px 0',
             justifyContent: 'center',
-            flexWrap: 'wrap'
+            flexWrap: 'wrap',
+            padding: '0 10px' // Add padding for mobile
           }}>
             <div className="control-group" style={{ 
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center',
-              minWidth: '200px',
-              gap: '5px'
+              minWidth: window.innerWidth > 768 ? '200px' : '100%',
+              gap: '8px',
+              padding: '10px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px'
             }}>
               <label style={{ fontSize: '14px', fontWeight: 'bold' }}>
                 PFP Rotation: {pfpRotation}°
@@ -351,15 +398,26 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                 max="360"
                 value={pfpRotation}
                 onChange={(e) => setPfpRotation(Number(e.target.value))}
-                style={{ width: '100%' }}
+                style={{ 
+                  width: '100%',
+                  height: window.innerWidth <= 768 ? '40px' : '20px', // Larger touch target on mobile
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  background: '#ddd',
+                  borderRadius: '5px',
+                  outline: 'none'
+                }}
               />
             </div>
             <div className="control-group" style={{ 
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center',
-              minWidth: '200px',
-              gap: '5px'
+              minWidth: window.innerWidth > 768 ? '200px' : '100%',
+              gap: '8px',
+              padding: '10px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px'
             }}>
               <label style={{ fontSize: '14px', fontWeight: 'bold' }}>
                 Text Size: {fontSize}px
@@ -370,15 +428,26 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                 max="40"
                 value={fontSize}
                 onChange={(e) => setFontSize(Number(e.target.value))}
-                style={{ width: '100%' }}
+                style={{ 
+                  width: '100%',
+                  height: window.innerWidth <= 768 ? '40px' : '20px',
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  background: '#ddd',
+                  borderRadius: '5px',
+                  outline: 'none'
+                }}
               />
             </div>
             <div className="control-group" style={{ 
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center',
-              minWidth: '200px',
-              gap: '5px'
+              minWidth: window.innerWidth > 768 ? '200px' : '100%',
+              gap: '8px',
+              padding: '10px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px'
             }}>
               <label style={{ fontSize: '14px', fontWeight: 'bold' }}>
                 Text Rotation: {xRotation}°
@@ -389,7 +458,15 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                 max="360"
                 value={xRotation}
                 onChange={(e) => setXRotation(Number(e.target.value))}
-                style={{ width: '100%' }}
+                style={{ 
+                  width: '100%',
+                  height: window.innerWidth <= 768 ? '40px' : '20px',
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  background: '#ddd',
+                  borderRadius: '5px',
+                  outline: 'none'
+                }}
               />
             </div>
           </div>
@@ -399,12 +476,13 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
             gap: '10px',
             justifyContent: 'center',
             flexWrap: 'wrap',
-            marginTop: '20px'
+            marginTop: '20px',
+            padding: '0 10px' // Add padding for mobile
           }}>
             <button 
               onClick={handleDownload}
               style={{
-                padding: '12px 24px',
+                padding: window.innerWidth <= 768 ? '16px 24px' : '12px 24px', // Larger touch target on mobile
                 fontSize: '16px',
                 fontWeight: 'bold',
                 backgroundColor: '#1DA1F2',
@@ -412,7 +490,8 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
-                minWidth: '150px'
+                minWidth: window.innerWidth <= 768 ? '140px' : '150px',
+                touchAction: 'manipulation' // Better for mobile buttons
               }}
             >
               Download Banner
@@ -420,7 +499,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
             <button 
               onClick={handleShare}
               style={{
-                padding: '12px 24px',
+                padding: window.innerWidth <= 768 ? '16px 24px' : '12px 24px',
                 fontSize: '16px',
                 fontWeight: 'bold',
                 backgroundColor: '#000',
@@ -428,7 +507,8 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
-                minWidth: '150px'
+                minWidth: window.innerWidth <= 768 ? '140px' : '150px',
+                touchAction: 'manipulation'
               }}
             >
               Share to X
