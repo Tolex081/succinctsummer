@@ -1,7 +1,6 @@
 // BannerPreview.js
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Rnd } from 'react-rnd';
-import xIcon from '../assets/x-icon.png';
 
 function BannerPreview({ selectedTemplate, pfp, xUsername }) {
   const canvasRef = useRef(null);
@@ -110,9 +109,8 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
         ctx.restore();
       }
 
-      // Draw X icon and username (scale positions and sizes)
+      // Draw username text only (no X icon)
       if (tempXUsername) {
-        const iconImg = await loadImage(xIcon);
         const scaledX = xPosition.x * scaleX;
         const scaledY = xPosition.y * scaleY;
         const scaledFontSize = fontSize * scaleX;
@@ -120,10 +118,9 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
         ctx.save();
         ctx.translate(scaledX, scaledY);
         ctx.rotate((xRotation * Math.PI) / 180);
-        ctx.drawImage(iconImg, 0, -scaledFontSize, scaledFontSize, scaledFontSize);
-        ctx.font = `bold ${scaledFontSize}px Arial`;
+        ctx.font = `bold ${scaledFontSize}px Montserrat, Arial, sans-serif`;
         ctx.fillStyle = '#000';
-        ctx.fillText(tempXUsername, scaledFontSize + 5, 0);
+        ctx.fillText(tempXUsername, 0, 0);
         ctx.restore();
       }
     } catch (err) {
@@ -193,7 +190,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
           color: '#666'
         }}
       >
-        Drag and resize your PFP or X text/icon. Works on mobile and desktop.
+        Drag and resize your PFP or username text. Works on mobile and desktop.
       </p>
       {selectedTemplate ? (
         <>
@@ -281,10 +278,10 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
               )}
             </Rnd>
 
-            {/* X Username Draggable Component */}
+            {/* Username Text Draggable Component (No X Icon) */}
             <Rnd
               bounds="parent"
-              size={{ width: Math.max(fontSize * 8, 150), height: fontSize * 2 }}
+              size={{ width: Math.max(fontSize * 6, 120), height: fontSize * 1.5 }}
               position={xPosition}
               onDragStop={(e, d) => setXPosition({ x: d.x, y: d.y })}
               enableResizing={false}
@@ -299,16 +296,18 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
                   transform: `rotate(${xRotation}deg)`,
                   pointerEvents: 'none'
                 }}
               >
-                <img
-                  src={xIcon}
-                  alt="X icon"
-                  style={{ width: fontSize, height: fontSize, marginRight: '0.5rem' }}
-                />
-                <span style={{ fontSize, fontWeight: 'bold', color: '#000' }}>
+                <span style={{ 
+                  fontSize, 
+                  fontWeight: 'bold', 
+                  color: '#000',
+                  fontFamily: 'Montserrat, Arial, sans-serif'
+                }}>
                   {tempXUsername}
                 </span>
               </div>
@@ -350,7 +349,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
               gap: '5px'
             }}>
               <label style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                Text/Icon Size: {fontSize}px
+                Text Size: {fontSize}px
               </label>
               <input
                 type="range"
@@ -369,7 +368,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
               gap: '5px'
             }}>
               <label style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                X Rotation: {xRotation}°
+                Text Rotation: {xRotation}°
               </label>
               <input
                 type="range"
