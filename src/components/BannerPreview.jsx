@@ -82,9 +82,17 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
     canvas.width = templateDimensions.width;
     canvas.height = templateDimensions.height;
 
-    // Calculate scale factors to convert display positions to canvas positions
-    const scaleX = templateDimensions.width / displayDimensions.width;
-    const scaleY = templateDimensions.height / displayDimensions.height;
+    // Get the actual rendered dimensions of the container
+    const container = containerRef.current;
+    const containerRect = container ? container.getBoundingClientRect() : null;
+    
+    // Use actual container dimensions if available, otherwise fall back to displayDimensions
+    const actualDisplayWidth = containerRect ? containerRect.width : displayDimensions.width;
+    const actualDisplayHeight = containerRect ? containerRect.height : displayDimensions.height;
+
+    // Calculate precise scale factors using actual rendered dimensions
+    const scaleX = templateDimensions.width / actualDisplayWidth;
+    const scaleY = templateDimensions.height / actualDisplayHeight;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -94,7 +102,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
       const templateImg = await loadImage(selectedTemplate.src);
       ctx.drawImage(templateImg, 0, 0, templateDimensions.width, templateDimensions.height);
 
-      // Draw PFP if available (scale positions and sizes)
+      // Draw PFP if available (scale positions and sizes using precise scaling)
       if (pfp) {
         const pfpImg = await loadImage(pfp);
         const scaledX = pfpPosition.x * scaleX;
