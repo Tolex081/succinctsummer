@@ -82,9 +82,17 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
     canvas.width = templateDimensions.width;
     canvas.height = templateDimensions.height;
 
-    // Calculate scale factors to convert display positions to canvas positions
-    const scaleX = templateDimensions.width / displayDimensions.width;
-    const scaleY = templateDimensions.height / displayDimensions.height;
+    // Get the actual displayed container dimensions
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const actualDisplayWidth = containerRect.width;
+    const actualDisplayHeight = containerRect.height;
+
+    // Calculate scale factors using actual displayed dimensions
+    const scaleX = templateDimensions.width / actualDisplayWidth;
+    const scaleY = templateDimensions.height / actualDisplayHeight;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -129,7 +137,6 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
   }, [
     selectedTemplate,
     templateDimensions,
-    displayDimensions,
     loadImage,
     pfp,
     pfpRotation,
@@ -259,20 +266,23 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
               style={{
                 border: '2px dashed #90DCFF',
                 background: '#fff',
-                touchAction: 'none',
+                touchAction: 'manipulation',
                 zIndex: 10
               }}
+              dragHandleClassName="drag-handle"
             >
               {pfp && (
                 <img
                   src={pfp}
                   alt="PFP"
+                  className="drag-handle"
                   style={{
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
                     transform: `rotate(${pfpRotation}deg)`,
-                    pointerEvents: 'none'
+                    pointerEvents: 'none',
+                    touchAction: 'manipulation'
                   }}
                 />
               )}
@@ -288,18 +298,21 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
               style={{
                 border: '1px dashed #781961',
                 background: '#fff',
-                touchAction: 'none',
+                touchAction: 'manipulation',
                 zIndex: 10
               }}
+              dragHandleClassName="text-drag-handle"
             >
               <div
+                className="text-drag-handle"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   height: '100%',
                   transform: `rotate(${xRotation}deg)`,
-                  pointerEvents: 'none'
+                  pointerEvents: 'none',
+                  touchAction: 'manipulation'
                 }}
               >
                 <span style={{ 
