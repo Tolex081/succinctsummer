@@ -82,17 +82,9 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
     canvas.width = templateDimensions.width;
     canvas.height = templateDimensions.height;
 
-    // Get the actual displayed container dimensions
-    const container = containerRef.current;
-    if (!container) return;
-    
-    const containerRect = container.getBoundingClientRect();
-    const actualDisplayWidth = containerRect.width;
-    const actualDisplayHeight = containerRect.height;
-
-    // Calculate scale factors using actual displayed dimensions
-    const scaleX = templateDimensions.width / actualDisplayWidth;
-    const scaleY = templateDimensions.height / actualDisplayHeight;
+    // Calculate scale factors to convert display positions to canvas positions
+    const scaleX = templateDimensions.width / displayDimensions.width;
+    const scaleY = templateDimensions.height / displayDimensions.height;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -137,6 +129,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
   }, [
     selectedTemplate,
     templateDimensions,
+    displayDimensions,
     loadImage,
     pfp,
     pfpRotation,
@@ -183,22 +176,6 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
     setIsExporting(false);
   };
 
-  // Calculate bounds to allow some overflow but prevent complete disappearance
-  const getBounds = useCallback(() => {
-    if (!containerRef.current) return undefined;
-    
-    const containerRect = containerRef.current.getBoundingClientRect();
-    // Smaller margin for mobile, larger for desktop
-    const margin = window.innerWidth <= 768 ? 20 : 50;
-    
-    return {
-      left: -margin,
-      top: -margin,
-      right: displayDimensions.width - margin,
-      bottom: displayDimensions.height - margin
-    };
-  }, [displayDimensions]);
-
   return (
     <div className="banner-preview" style={{ padding: '20px', maxWidth: '100%', boxSizing: 'border-box' }}>
       <h2 style={{ textAlign: 'center', marginBottom: '10px', fontSize: 'clamp(1.5rem, 4vw, 2rem)' }}>
@@ -225,7 +202,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
               background: 'transparent',
               width: displayDimensions.width,
               height: displayDimensions.height,
-              overflow: 'visible', // Changed from 'hidden' to 'visible'
+              overflow: 'hidden',
               margin: '0 auto',
               border: '2px solid #e0e0e0',
               borderRadius: '8px',
@@ -260,7 +237,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
 
             {/* PFP Draggable Component */}
             <Rnd
-              bounds={getBounds()}
+              bounds="parent"
               size={pfpSize}
               position={pfpPosition}
               onDragStop={(e, d) => setPfpPosition({ x: d.x, y: d.y })}
@@ -268,101 +245,68 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                 setPfpSize({ width: ref.offsetWidth, height: ref.offsetHeight });
                 setPfpPosition(position);
               }}
-              enableResizing={window.innerWidth > 768} // Disable resizing on mobile for better touch experience
+              enableResizing={true}
               resizeHandleStyles={{
-                top: { cursor: 'ns-resize', backgroundColor: '#90DCFF', width: '100%', height: '8px' },
-                right: { cursor: 'ew-resize', backgroundColor: '#90DCFF', width: '8px', height: '100%' },
-                bottom: { cursor: 'ns-resize', backgroundColor: '#90DCFF', width: '100%', height: '8px' },
-                left: { cursor: 'ew-resize', backgroundColor: '#90DCFF', width: '8px', height: '100%' },
-                topRight: { cursor: 'ne-resize', backgroundColor: '#90DCFF', width: '12px', height: '12px' },
-                bottomRight: { cursor: 'se-resize', backgroundColor: '#90DCFF', width: '12px', height: '12px' },
-                bottomLeft: { cursor: 'sw-resize', backgroundColor: '#90DCFF', width: '12px', height: '12px' },
-                topLeft: { cursor: 'nw-resize', backgroundColor: '#90DCFF', width: '12px', height: '12px' }
+                top: { cursor: 'ns-resize' },
+                right: { cursor: 'ew-resize' },
+                bottom: { cursor: 'ns-resize' },
+                left: { cursor: 'ew-resize' },
+                topRight: { cursor: 'ne-resize' },
+                bottomRight: { cursor: 'se-resize' },
+                bottomLeft: { cursor: 'sw-resize' },
+                topLeft: { cursor: 'nw-resize' }
               }}
               style={{
                 border: '2px dashed #90DCFF',
-                background: 'rgba(255, 255, 255, 0.9)',
-                touchAction: 'none', // Better for mobile touch
-                zIndex: 10,
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                msUserSelect: 'none'
+                background: '#fff',
+                touchAction: 'none',
+                zIndex: 10
               }}
-              dragHandleClassName="drag-handle"
-              // Mobile-specific props
-              disableDragging={false}
-              cancel=".resize-handle"
             >
               {pfp && (
                 <img
                   src={pfp}
                   alt="PFP"
-                  className="drag-handle"
                   style={{
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
                     transform: `rotate(${pfpRotation}deg)`,
-                    pointerEvents: 'none',
-                    touchAction: 'none',
-                    userSelect: 'none',
-                    WebkitUserSelect: 'none',
-                    WebkitTouchCallout: 'none',
-                    WebkitUserDrag: 'none',
-                    msUserSelect: 'none'
+                    pointerEvents: 'none'
                   }}
-                  draggable={false}
                 />
               )}
             </Rnd>
 
             {/* Username Text Draggable Component (No X Icon) */}
             <Rnd
-              bounds={getBounds()}
-              size={{ width: Math.max(fontSize * 6, 120), height: Math.max(fontSize * 1.5, 40) }}
+              bounds="parent"
+              size={{ width: Math.max(fontSize * 6, 120), height: fontSize * 1.5 }}
               position={xPosition}
               onDragStop={(e, d) => setXPosition({ x: d.x, y: d.y })}
               enableResizing={false}
               style={{
-                border: '2px dashed #781961',
-                background: 'rgba(255, 255, 255, 0.9)',
+                border: '1px dashed #781961',
+                background: '#fff',
                 touchAction: 'none',
-                zIndex: 10,
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                msUserSelect: 'none',
-                minHeight: '40px' // Ensure minimum touch target size on mobile
+                zIndex: 10
               }}
-              dragHandleClassName="text-drag-handle"
-              disableDragging={false}
             >
               <div
-                className="text-drag-handle"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   height: '100%',
-                  minHeight: '40px', // Ensure good touch target
-                  width: '100%',
                   transform: `rotate(${xRotation}deg)`,
-                  pointerEvents: 'none',
-                  touchAction: 'none',
-                  userSelect: 'none',
-                  WebkitUserSelect: 'none',
-                  WebkitTouchCallout: 'none',
-                  msUserSelect: 'none'
+                  pointerEvents: 'none'
                 }}
               >
                 <span style={{ 
-                  fontSize: Math.max(fontSize, 14), // Ensure minimum readable size on mobile
+                  fontSize, 
                   fontWeight: 'bold', 
                   color: '#000',
-                  fontFamily: 'Montserrat, Arial, sans-serif',
-                  userSelect: 'none',
-                  WebkitUserSelect: 'none',
-                  msUserSelect: 'none',
-                  pointerEvents: 'none'
+                  fontFamily: 'Montserrat, Arial, sans-serif'
                 }}>
                   {tempXUsername}
                 </span>
@@ -376,18 +320,14 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
             gap: '15px',
             margin: '20px 0',
             justifyContent: 'center',
-            flexWrap: 'wrap',
-            padding: '0 10px' // Add padding for mobile
+            flexWrap: 'wrap'
           }}>
             <div className="control-group" style={{ 
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center',
-              minWidth: window.innerWidth > 768 ? '200px' : '100%',
-              gap: '8px',
-              padding: '10px',
-              background: 'rgba(255, 255, 255, 0.1)',
-              borderRadius: '8px'
+              minWidth: '200px',
+              gap: '5px'
             }}>
               <label style={{ fontSize: '14px', fontWeight: 'bold' }}>
                 PFP Rotation: {pfpRotation}°
@@ -398,26 +338,15 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                 max="360"
                 value={pfpRotation}
                 onChange={(e) => setPfpRotation(Number(e.target.value))}
-                style={{ 
-                  width: '100%',
-                  height: window.innerWidth <= 768 ? '40px' : '20px', // Larger touch target on mobile
-                  appearance: 'none',
-                  WebkitAppearance: 'none',
-                  background: '#ddd',
-                  borderRadius: '5px',
-                  outline: 'none'
-                }}
+                style={{ width: '100%' }}
               />
             </div>
             <div className="control-group" style={{ 
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center',
-              minWidth: window.innerWidth > 768 ? '200px' : '100%',
-              gap: '8px',
-              padding: '10px',
-              background: 'rgba(255, 255, 255, 0.1)',
-              borderRadius: '8px'
+              minWidth: '200px',
+              gap: '5px'
             }}>
               <label style={{ fontSize: '14px', fontWeight: 'bold' }}>
                 Text Size: {fontSize}px
@@ -428,26 +357,15 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                 max="40"
                 value={fontSize}
                 onChange={(e) => setFontSize(Number(e.target.value))}
-                style={{ 
-                  width: '100%',
-                  height: window.innerWidth <= 768 ? '40px' : '20px',
-                  appearance: 'none',
-                  WebkitAppearance: 'none',
-                  background: '#ddd',
-                  borderRadius: '5px',
-                  outline: 'none'
-                }}
+                style={{ width: '100%' }}
               />
             </div>
             <div className="control-group" style={{ 
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center',
-              minWidth: window.innerWidth > 768 ? '200px' : '100%',
-              gap: '8px',
-              padding: '10px',
-              background: 'rgba(255, 255, 255, 0.1)',
-              borderRadius: '8px'
+              minWidth: '200px',
+              gap: '5px'
             }}>
               <label style={{ fontSize: '14px', fontWeight: 'bold' }}>
                 Text Rotation: {xRotation}°
@@ -458,15 +376,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                 max="360"
                 value={xRotation}
                 onChange={(e) => setXRotation(Number(e.target.value))}
-                style={{ 
-                  width: '100%',
-                  height: window.innerWidth <= 768 ? '40px' : '20px',
-                  appearance: 'none',
-                  WebkitAppearance: 'none',
-                  background: '#ddd',
-                  borderRadius: '5px',
-                  outline: 'none'
-                }}
+                style={{ width: '100%' }}
               />
             </div>
           </div>
@@ -476,13 +386,12 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
             gap: '10px',
             justifyContent: 'center',
             flexWrap: 'wrap',
-            marginTop: '20px',
-            padding: '0 10px' // Add padding for mobile
+            marginTop: '20px'
           }}>
             <button 
               onClick={handleDownload}
               style={{
-                padding: window.innerWidth <= 768 ? '16px 24px' : '12px 24px', // Larger touch target on mobile
+                padding: '12px 24px',
                 fontSize: '16px',
                 fontWeight: 'bold',
                 backgroundColor: '#1DA1F2',
@@ -490,8 +399,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
-                minWidth: window.innerWidth <= 768 ? '140px' : '150px',
-                touchAction: 'manipulation' // Better for mobile buttons
+                minWidth: '150px'
               }}
             >
               Download Banner
@@ -499,7 +407,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
             <button 
               onClick={handleShare}
               style={{
-                padding: window.innerWidth <= 768 ? '16px 24px' : '12px 24px',
+                padding: '12px 24px',
                 fontSize: '16px',
                 fontWeight: 'bold',
                 backgroundColor: '#000',
@@ -507,8 +415,7 @@ function BannerPreview({ selectedTemplate, pfp, xUsername }) {
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
-                minWidth: window.innerWidth <= 768 ? '140px' : '150px',
-                touchAction: 'manipulation'
+                minWidth: '150px'
               }}
             >
               Share to X
